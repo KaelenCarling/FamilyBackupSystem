@@ -6,18 +6,13 @@ from glob import glob
 __SQLName = 'test'
 
 def printFiles(directory):
-    #files = []
 
     # recursively walks through the directory given
     for fileDirectory in os.walk(directory):
         # uses glob to find files which match the criteria. if you delete the *.* it will find files without
         # types (mainly directories)
         for file in glob(os.path.join(fileDirectory[0], '*.*')):
-            #files.append(file)
             insertFile(file)
-
-    #print(files)
-
 
 def createSQL():
     # connects to the SQL server. if it doesn't exist it creates one
@@ -30,7 +25,6 @@ def createSQL():
     # commits changes and then closes
     database.commit()
     database.close()
-
 
 def insertFile(file):
     # generates the formatted date when this file is read in from the current time
