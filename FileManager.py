@@ -35,25 +35,24 @@ def createSQL():
 
 
 def isNotInDatabase(file):
+    # connects to the database and sets up the cursor
     database = sqlite3.connect('{}.sqlite'.format(__SQLName))
     curse = database.cursor()
 
     # generates the query for the insertion and then executes it
-    # query = 'INSERT INTO FileDirectories (name, type, lastModified) VALUES (?,?,?)'
     query = 'SELECT * FROM FileDirectories WHERE name=?'
     curse.execute(query, (file,))
 
+    # fetches the row that matches the description
     row = curse.fetchone()
-    if row is None or str(row[0]) != str(file):
-        database.commit()
-        database.close()
+    database.commit()
+    database.close()
+
+    # if the select query didn't return anything return true
+    if row is None:
         return True
     else:
-        database.commit()
-        database.close()
         return False
-
-    # commits the change and closes the database
 
 
 def insertFile(file):
