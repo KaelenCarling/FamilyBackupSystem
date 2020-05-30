@@ -1,18 +1,22 @@
 import os
 import sqlite3
 import datetime
+from configparser import ConfigParser
 from glob import glob
 
 __SQLName = 'test'
 
-def printFiles(directory):
+config = ConfigParser()
 
+
+def fileSniff(directory):
     # recursively walks through the directory given
     for fileDirectory in os.walk(directory):
         # uses glob to find files which match the criteria. if you delete the *.* it will find files without
         # types (mainly directories)
         for file in glob(os.path.join(fileDirectory[0], '*.*')):
             insertFile(file)
+
 
 def createSQL():
     # connects to the SQL server. if it doesn't exist it creates one
@@ -25,6 +29,7 @@ def createSQL():
     # commits changes and then closes
     database.commit()
     database.close()
+
 
 def insertFile(file):
     # generates the formatted date when this file is read in from the current time
@@ -47,16 +52,45 @@ def insertFile(file):
     database.commit()
     database.close()
 
+def startUpCheck():
+
+    createConfig()
+    addConfigLine('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
+
+    '''
+    config.read('backup_config.ini')
+    config.add_section('main')
+    
+    #set directory
+    config.set('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
+    
+    with open('backup_config.ini', 'w') as outLine:
+        config.write(outLine)
+    '''
 # todo: implement main method that will manage table creation and be for use in another python program
-'''
+
+def createConfig():
+    config.read('backup_config.ini')
+    config.add_section('main')
+
+    with open('backup_config.ini', 'w') as outLine:
+        config.write(outLine)
+
+def addConfigLine(section, key, value):
+    config.read('backup_config.ini')
+    config.set(section, key, value)
+
+    with open('backup_config.ini', 'w') as outLine:
+        config.write(outLine)
+
 def main():
-    print("Hello World!")
+    #createSQL()
+    startUpCheck()
+    config.read('backup_config.ini')
+    config.get('main', 'directory0')
+    #fileSniff(config.get('main', 'directory0'))
 
 if __name__ == "__main__":
     main()
-'''
-#createSQL()
-
-printFiles('C:\\Users\\Kaelen\\Documents\\CS 112')
 
 
