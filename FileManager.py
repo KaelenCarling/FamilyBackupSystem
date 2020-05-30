@@ -1,7 +1,8 @@
 import os
+from sqlite3 import OperationalError
 import sqlite3
 import datetime
-from configparser import ConfigParser
+from configparser import ConfigParser, DuplicateSectionError
 from glob import glob
 
 __SQLName = 'test'
@@ -15,8 +16,8 @@ def fileSniff(directory):
         # uses glob to find files which match the criteria. if you delete the *.* it will find files without
         # types (mainly directories)
         for file in glob(os.path.join(fileDirectory[0], '*.*')):
-            insertFile(file)
-
+            if isNotInDatabase(file):
+                insertFile(file)
 
 def createSQL():
     # connects to the SQL server. if it doesn't exist it creates one
@@ -24,19 +25,40 @@ def createSQL():
 
     # creates a cursor to interact with the database
     curse = database.cursor()
-    curse.execute('CREATE TABLE FileDirectories (name VARCHAR, type VARCHAR, lastModified DATETIME)')
+    curse.execute(
+        'CREATE TABLE FileDirectories (name VARCHAR, type VARCHAR, lastModified DATETIME, lastChecked DATETIME)')
 
     # commits changes and then closes
     database.commit()
     database.close()
 
 
+def isNotInDatabase(file):
+    database = sqlite3.connect('{}.sqlite'.format(__SQLName))
+    curse = database.cursor()
+
+    # generates the query for the insertion and then executes it
+    # query = 'INSERT INTO FileDirectories (name, type, lastModified) VALUES (?,?,?)'
+    query = 'SELECT * FROM FileDirectories WHERE name=?'
+    curse.execute(query, (file,))
+
+    row = curse.fetchone()
+    if row is None or str(row[0]) != str(file):
+        return True
+    else:
+        return False
+
+    # commits the change and closes the database
+    database.commit()
+    database.close()
+
 def insertFile(file):
     # generates the formatted date when this file is read in from the current time
-    formattedDate = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    lastCheckedFMT = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    name = file
-
+    # gets last modified date
+    lastModifiedFMT = datetime.datetime.fromtimestamp(os.path.getmtime(file)).strftime('%Y-%m-%d %H:%M:%S')
+    print(lastModifiedFMT)
     # stores the file extension without the dot
     type = os.path.splitext(file)[1][1:]
 
@@ -45,52 +67,51 @@ def insertFile(file):
     curse = database.cursor()
 
     # generates the query for the insertion and then executes it
-    query = 'INSERT INTO FileDirectories (name, type, lastModified) VALUES (?,?,?)'
-    curse.execute(query, (name, type, formattedDate))
+    query = 'INSERT INTO FileDirectories (name, type, lastModified, LastChecked) VALUES (?,?,?,?)'
+    curse.execute(query, (file, type, lastModifiedFMT, lastCheckedFMT))
 
     # commits the change and closes the database
     database.commit()
     database.close()
 
-def startUpCheck():
-
-    createConfig()
-    addConfigLine('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
-
-    '''
-    config.read('backup_config.ini')
-    config.add_section('main')
-    
-    #set directory
-    config.set('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
-    
-    with open('backup_config.ini', 'w') as outLine:
-        config.write(outLine)
-    '''
-# todo: implement main method that will manage table creation and be for use in another python program
-
 def createConfig():
     config.read('backup_config.ini')
     config.add_section('main')
 
-    with open('backup_config.ini', 'w') as outLine:
-        config.write(outLine)
+    config.write(open('backup_config.ini', 'w'))
+
 
 def addConfigLine(section, key, value):
+    # sets config to read from and sets the parameters
     config.read('backup_config.ini')
     config.set(section, key, value)
 
+    # writes changes out to config
     with open('backup_config.ini', 'w') as outLine:
         config.write(outLine)
 
+
+def startUpCheck():
+    # creates a config in none exists
+    try:
+        createConfig()
+    except DuplicateSectionError:
+        pass
+    try:
+        createSQL()
+        addConfigLine('main', 'sqlite3_server', __SQLName + '.sqlite')
+    except OperationalError:
+        addConfigLine('main', 'sqlite3_server', __SQLName + '.sqlite')
+
+    # add directory
+    addConfigLine('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
+
+
 def main():
-    #createSQL()
+    # creates sqlite server if none exists and the config file for setting informations
     startUpCheck()
-    config.read('backup_config.ini')
-    config.get('main', 'directory0')
-    #fileSniff(config.get('main', 'directory0'))
+    fileSniff(config.get('main', 'directory0'))
+
 
 if __name__ == "__main__":
     main()
-
-
