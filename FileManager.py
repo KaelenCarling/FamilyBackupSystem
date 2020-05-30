@@ -19,6 +19,7 @@ def fileSniff(directory):
             if isNotInDatabase(file):
                 insertFile(file)
 
+
 def createSQL():
     # connects to the SQL server. if it doesn't exist it creates one
     database = sqlite3.connect('{}.sqlite'.format(__SQLName))
@@ -44,21 +45,24 @@ def isNotInDatabase(file):
 
     row = curse.fetchone()
     if row is None or str(row[0]) != str(file):
+        database.commit()
+        database.close()
         return True
     else:
+        database.commit()
+        database.close()
         return False
 
     # commits the change and closes the database
-    database.commit()
-    database.close()
+
 
 def insertFile(file):
     # generates the formatted date when this file is read in from the current time
     lastCheckedFMT = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    # gets last modified date
+    # gets last modified date and converts it to DATETIME
     lastModifiedFMT = datetime.datetime.fromtimestamp(os.path.getmtime(file)).strftime('%Y-%m-%d %H:%M:%S')
-    print(lastModifiedFMT)
+
     # stores the file extension without the dot
     type = os.path.splitext(file)[1][1:]
 
@@ -73,6 +77,7 @@ def insertFile(file):
     # commits the change and closes the database
     database.commit()
     database.close()
+
 
 def createConfig():
     config.read('backup_config.ini')
