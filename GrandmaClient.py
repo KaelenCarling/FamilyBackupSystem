@@ -1,7 +1,8 @@
 import socket
 
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-addr = socket.gethostname()
+addr = socket.gethostbyname("192.168.11.81")
+print(addr)
 port = 1234
 
 soc.connect((addr, port))

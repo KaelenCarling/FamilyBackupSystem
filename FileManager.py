@@ -2,12 +2,12 @@ import os
 from sqlite3 import OperationalError
 import sqlite3
 import datetime
-from configparser import ConfigParser, DuplicateSectionError
+import ConfigHelper
 from glob import glob
 
 __SQLName = 'test'
 
-config = ConfigParser()
+backup_config = ConfigHelper.ConfigHelper('backup_config.ini')
 
 
 def fileSniff(directory):
@@ -78,43 +78,23 @@ def insertFile(file):
     database.close()
 
 
-def createConfig():
-    config.read('backup_config.ini')
-    config.add_section('main')
-
-    config.write(open('backup_config.ini', 'w'))
-
-
-def addConfigLine(section, key, value):
-    # sets config to read from and sets the parameters
-    config.read('backup_config.ini')
-    config.set(section, key, value)
-
-    # writes changes out to config
-    with open('backup_config.ini', 'w') as outLine:
-        config.write(outLine)
-
-
 def startUpCheck():
     # creates a config in none exists
+    backup_config.createConfig('main')
     try:
-        createConfig()
-    except DuplicateSectionError:
-        pass
-    try:
+        backup_config.addConfigLine('main', 'sqlite3_server', __SQLName + '.sqlite')
         createSQL()
-        addConfigLine('main', 'sqlite3_server', __SQLName + '.sqlite')
     except OperationalError:
-        addConfigLine('main', 'sqlite3_server', __SQLName + '.sqlite')
+        pass
 
     # add directory
-    addConfigLine('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
+    backup_config.addConfigLine('main', 'directory0', 'C:\\Users\\kaele\\Documents\\TestBackup')
 
 
 def main():
-    # creates sqlite server if none exists and the config file for setting informations
+    # creates sqlite server if none exists and the config file for setting information
     startUpCheck()
-    fileSniff(config.get('main', 'directory0'))
+    fileSniff(backup_config.getLineValue('main', 'directory0'))
 
 
 if __name__ == "__main__":
